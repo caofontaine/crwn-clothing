@@ -3,48 +3,78 @@ import 'firebase/firestore';
 import 'firebase/auth';
 
 const config = {
-    apiKey: "AIzaSyB-kiMuY7hbgtpdVTbhsF-gVRyUvAKTftk",
-    authDomain: "crwn-db-112cb.firebaseapp.com",
-    projectId: "crwn-db-112cb",
-    storageBucket: "crwn-db-112cb.appspot.com",
-    messagingSenderId: "686483442606",
-    appId: "1:686483442606:web:9302f4da2c3c908189163f",
-    measurementId: "G-Z260JK6FXJ"
-  };
+  apiKey: "AIzaSyB-kiMuY7hbgtpdVTbhsF-gVRyUvAKTftk",
+  authDomain: "crwn-db-112cb.firebaseapp.com",
+  projectId: "crwn-db-112cb",
+  storageBucket: "crwn-db-112cb.appspot.com",
+  messagingSenderId: "686483442606",
+  appId: "1:686483442606:web:9302f4da2c3c908189163f",
+  measurementId: "G-Z260JK6FXJ"
+};
 
-  export const createUserProfileDocument = async (userAuth, additionalData) => {
-    if (!userAuth) return;
+firebase.initializeApp(config);
 
-    const userRef = firestore.doc(`users/${userAuth.uid}`);
+export const createUserProfileDocument = async (userAuth, additionalData) => {
+  if (!userAuth) return;
 
-    const snapShot = await userRef.get();
+  const userRef = firestore.doc(`users/${userAuth.uid}`);
 
-    if(!snapShot.exists) {
-      const { displayName, email } = userAuth;
-      const createdAt = new Date();
+  const snapShot = await userRef.get();
 
-      try {
-        await userRef.set({
-          displayName,
-          email,
-          createdAt,
-          ...additionalData
-        })
-      } catch (error) {
-        console.log('error creating user', error.message);
-      }
+  if(!snapShot.exists) {
+    const { displayName, email } = userAuth;
+    const createdAt = new Date();
+
+    try {
+      await userRef.set({
+        displayName,
+        email,
+        createdAt,
+        ...additionalData
+      })
+    } catch (error) {
+      console.log('error creating user', error.message);
     }
-
-    return userRef;
   }
 
-  firebase.initializeApp(config);
+  return userRef;
+};
 
-  export const auth = firebase.auth();
-  export const firestore = firebase.firestore();
+export const addCollectionAndDocuments = async (collectionKey, objectsToAdd) => {
+  const collectionRef = firestore.collection(collectionKey);
 
-  const provider = new firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
-  export const signInWithGoogle = () => auth.signInWithPopup(provider);
+  const batch = firestore.batch();
+  objectsToAdd.forEach(obj => {
+    const newDocRef = collectionRef.doc();
+    batch.set(newDocRef, obj);
+  });
 
-  export default firebase;
+  return await batch.commit();
+};
+
+export const convertCollectionsSnapshotToMap = collections => {
+  const transformedCollection = collections.docs.map(doc => {
+    const { title, items } = doc.data();
+
+    return {
+      routeName: encodeURI(title.toLowerCase()),
+      id: doc.id,
+      title,
+      items
+    };
+  });
+
+  return transformedCollection.reduce((accumulator, collection) => {
+    accumulator[collection.title.toLowerCase()] = collection;
+    return accumulator;
+  }, {});
+};
+
+export const auth = firebase.auth();
+export const firestore = firebase.firestore();
+
+const provider = new firebase.auth.GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' });
+export const signInWithGoogle = () => auth.signInWithPopup(provider);
+
+export default firebase;

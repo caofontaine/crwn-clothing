@@ -22,7 +22,7 @@ const CollectionPage = ({ collection }) => {
                 ))}
           </CollectionItemsContainer>
         </CollectionPageContainer>
-      );
+    );
 };
 
 const mapStateToProps = (state, ownProps) => ({
